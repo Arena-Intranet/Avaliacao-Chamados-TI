@@ -65,7 +65,9 @@ export function App() {
           return;
         }
 
-        const response = await fetch(`https://arenavidros.com.br/api/atendimento`);
+        const response = await fetch(
+          `https://arenavidros.com.br/api/atendimento`,
+        );
         const dados = await response.json();
         const chamadoEncontrado = dados.find(
           (item) => String(item.numero) === String(numeroChamado),
@@ -77,7 +79,9 @@ export function App() {
             numero: chamadoEncontrado.numero || "",
             mensagem: chamadoEncontrado.mensagem || "Sem mensagem",
             dataAbertura: chamadoEncontrado.data_abertura
-              ? new Date(chamadoEncontrado.data_abertura).toLocaleString("pt-BR")
+              ? new Date(chamadoEncontrado.data_abertura).toLocaleString(
+                  "pt-BR",
+                )
               : "",
             dataTermino: chamadoEncontrado.dataTermino
               ? new Date(chamadoEncontrado.dataTermino).toLocaleString("pt-BR")
@@ -120,7 +124,8 @@ export function App() {
     if (!avaliacao || !opiniaoTexto || !dadosChamado.numero) {
       setStatus({
         tipo: "error",
-        mensagem: "Erro: Todos os campos (Avaliação e Opinião) precisam estar preenchidos!",
+        mensagem:
+          "Erro: Todos os campos (Avaliação e Opinião) precisam estar preenchidos!",
       });
       return;
     }
@@ -129,19 +134,18 @@ export function App() {
     const emojiSelecionado = emojis.find((item) => item.value === avaliacao);
 
     const payload = {
-      numeroChamado: dadosChamado.numero,
-      nomeUsuario: dadosChamado.nomeUsuario,
-      dataAbertura: formatarParaBD(dadosChamado.rawAbertura),
-      dataTermino: formatarParaBD(dadosChamado.rawTermino),
-      mensagem: dadosChamado.mensagem,
       avaliacao: avaliacao,
       pontuacao: emojiSelecionado ? emojiSelecionado.pontuacao : 0,
       opiniao: opiniaoTexto,
     };
 
     try {
+      // Codifica os espaços e hífens ("TI - 6261" vira "TI%20-%206261") para transitar na URL sem quebras
+      const chamadoCodificado = encodeURIComponent(dadosChamado.numero);
+
+      // Mantemos o padrão limpo sem o ".php" exigido pelo seu Router central
       const response = await fetch(
-        "https://avaliacoes.arenavidros.com.br/api/pesquisas",
+        `https://arenavidros.com.br/api/pesquisas?chamado=${chamadoCodificado}`,
         {
           method: "POST",
           headers: {
@@ -165,7 +169,7 @@ export function App() {
         });
         e.target.reset();
       } else {
-        const erroData = await response.json();
+        const erroData = await response.json().catch(() => ({}));
         setStatus({
           tipo: "error",
           mensagem: `Erro ao salvar: ${erroData.error || "Ocorreu um problema no servidor."}`,
@@ -175,7 +179,8 @@ export function App() {
       console.error("Erro na requisição:", error);
       setStatus({
         tipo: "error",
-        mensagem: "Não foi possível conectar ao servidor. Verifique sua conexão.",
+        mensagem:
+          "Não foi possível conectar ao servidor. Verifique sua conexão.",
       });
     } finally {
       setEnviando(false);
@@ -184,7 +189,14 @@ export function App() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <CircularProgress sx={{ color: primaryColor }} />
       </Box>
     );
@@ -193,47 +205,103 @@ export function App() {
   const podeEnviar = avaliacao && dadosChamado.numero && !enviando;
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", p: 2, bgcolor: "#f5f5f5", minHeight: "95vh" }}>
-      <Paper elevation={3} sx={{ width: "100%", maxWidth: 700, borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "stretch", height: "fit-content" }}>
-        
-        <Box sx={{ bgcolor: primaryColor, color: "white", py: 4, px: 2, textAlign: "center" }}>
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        p: 2,
+        bgcolor: "#f5f5f5",
+        minHeight: "95vh",
+      }}
+    >
+      <Paper
+        elevation={3}
+        sx={{
+          width: "100%",
+          maxWidth: 700,
+          borderRadius: 2,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          height: "fit-content",
+        }}
+      >
+        <Box
+          sx={{
+            bgcolor: primaryColor,
+            color: "white",
+            py: 4,
+            px: 2,
+            textAlign: "center",
+          }}
+        >
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
             Pesquisa de Satisfação
           </Typography>
           {contagem === null && (
             <Typography variant="body2" sx={{ color: "#e0e0e0" }}>
-              Compartilhe sua experiência conosco sobre o Chamado # {dadosChamado.numero || "---"}
+              Compartilhe sua experiência conosco sobre o Chamado #{" "}
+              {dadosChamado.numero || "---"}
             </Typography>
           )}
         </Box>
 
         {contagem !== null ? (
-          <Box sx={{ p: 6, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 2 }}>
-            {/* ÍCONE CORRIGIDO PARA EMOJI, ZERO DEPENDÊNCIAS DE COMPONENTE EXTRA */}
+          <Box
+            sx={{
+              p: 6,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              gap: 2,
+            }}
+          >
             <Box sx={{ fontSize: "5rem", mb: 1 }}>✅</Box>
-            
+
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#2e7d32" }}>
               Avaliação enviada com sucesso!
             </Typography>
             <Typography variant="body1" sx={{ color: "#555" }}>
               Muito obrigado pelo seu feedback. Ele é muito importante para nós.
             </Typography>
-            
-            <Box sx={{ mt: 3, p: 2, bgcolor: "#edf7ed", borderRadius: 2, width: "100%", maxWidth: 400 }}>
+
+            <Box
+              sx={{
+                mt: 3,
+                p: 2,
+                bgcolor: "#edf7ed",
+                borderRadius: 2,
+                width: "100%",
+                maxWidth: 400,
+              }}
+            >
               {contagem > 0 ? (
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "#1e4620" }}>
-                  Esta tela será fechada automaticamente em <strong>{contagem} segundos</strong>...
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, color: "#1e4620" }}
+                >
+                  Esta tela será fechada automaticamente em{" "}
+                  <strong>{contagem} segundos</strong>...
                 </Typography>
               ) : (
-                <Typography variant="body2" sx={{ fontWeight: 700, color: dangerColor }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 700, color: dangerColor }}
+                >
                   Pronto! Você já pode fechar esta aba com segurança.
                 </Typography>
               )}
             </Box>
           </Box>
         ) : (
-          <Box component="form" onSubmit={handleSubmeterAvaliacao} sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-            
+          <Box
+            component="form"
+            onSubmit={handleSubmeterAvaliacao}
+            sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}
+          >
             {status.tipo && (
               <Alert severity={status.tipo} sx={{ mb: 1, borderRadius: 1.5 }}>
                 {status.mensagem}
@@ -250,7 +318,7 @@ export function App() {
                   value={dadosChamado.numero}
                   variant="outlined"
                   size="small"
-                  InputLabelProps={{ shrink: true }} 
+                  InputLabelProps={{ shrink: true }}
                   sx={{ bgcolor: "#fafafa" }}
                 />
               </Box>
@@ -263,7 +331,7 @@ export function App() {
                   value={dadosChamado.nomeUsuario}
                   variant="outlined"
                   size="small"
-                  InputLabelProps={{ shrink: true }} 
+                  InputLabelProps={{ shrink: true }}
                   sx={{ bgcolor: "#fafafa" }}
                 />
               </Box>
@@ -279,7 +347,7 @@ export function App() {
                   value={dadosChamado.dataAbertura}
                   variant="outlined"
                   size="small"
-                  InputLabelProps={{ shrink: true }} 
+                  InputLabelProps={{ shrink: true }}
                   sx={{ bgcolor: "#fafafa" }}
                 />
               </Box>
@@ -292,7 +360,7 @@ export function App() {
                   value={dadosChamado.dataTermino}
                   variant="outlined"
                   size="small"
-                  InputLabelProps={{ shrink: true }} 
+                  InputLabelProps={{ shrink: true }}
                   sx={{ bgcolor: "#fafafa" }}
                 />
               </Box>
@@ -308,37 +376,87 @@ export function App() {
                 label="Mensagem do Chamado"
                 value={dadosChamado.mensagem}
                 variant="outlined"
-                InputLabelProps={{ shrink: true }} 
+                InputLabelProps={{ shrink: true }}
                 sx={{ bgcolor: "#fafafa" }}
               />
             </Box>
 
-            <hr style={{ border: "0", borderTop: "1px dashed #ccc", margin: "8px 0" }} />
+            <hr
+              style={{
+                border: "0",
+                borderTop: "1px dashed #ccc",
+                margin: "8px 0",
+              }}
+            />
 
             <Box sx={{ textAlign: "center", my: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontStyle: "italic", mb: 2, color: "#555", fontWeight: 600 }}>
-                Como foi o nosso atendimento hoje, referente ao chamado {dadosChamado.numero || "---"}? <span style={{ color: dangerColor }}>*</span>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontStyle: "italic",
+                  mb: 2,
+                  color: "#555",
+                  fontWeight: 600,
+                }}
+              >
+                Como foi o nosso atendimento hoje, referente ao chamado{" "}
+                {dadosChamado.numero || "---"}?{" "}
+                <span style={{ color: dangerColor }}>*</span>
               </Typography>
 
               <ClickAwayListener onClickAway={() => {}}>
-                <Stack sx={{ display: "flex", alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}>
+                <Stack
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 4,
+                  }}
+                >
                   {emojis.map((item) => (
-                    <Box key={item.value} sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <Box
+                      key={item.value}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                      }}
+                    >
                       <IconButton
                         type="button"
                         disabled={enviando}
-                        onClick={() => setAvaliacao(avaliacao === item.value ? "" : item.value)}
+                        onClick={() =>
+                          setAvaliacao(
+                            avaliacao === item.value ? "" : item.value,
+                          )
+                        }
                         sx={{
                           fontSize: "3.5rem",
                           p: 0,
-                          filter: avaliacao && avaliacao !== item.value ? "grayscale(100%) opacity(0.4)" : "none",
-                          transform: avaliacao === item.value ? "scale(1.1)" : "scale(1)",
+                          filter:
+                            avaliacao && avaliacao !== item.value
+                              ? "grayscale(100%) opacity(0.4)"
+                              : "none",
+                          transform:
+                            avaliacao === item.value
+                              ? "scale(1.1)"
+                              : "scale(1)",
                           transition: "all 0.2s ease",
                         }}
                       >
                         {item.icon}
                       </IconButton>
-                      <Typography variant="caption" sx={{ mt: 1, fontWeight: 700, color: avaliacao === item.value ? primaryColor : "#888", fontSize: "0.65rem" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          mt: 1,
+                          fontWeight: 700,
+                          color:
+                            avaliacao === item.value ? primaryColor : "#888",
+                          fontSize: "0.65rem",
+                        }}
+                      >
                         {item.label}
                       </Typography>
                     </Box>
@@ -348,7 +466,10 @@ export function App() {
             </Box>
 
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: "#333" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 700, mb: 1, color: "#333" }}
+              >
                 Sua Opinião <span style={{ color: dangerColor }}>*</span>
               </Typography>
               <TextField
